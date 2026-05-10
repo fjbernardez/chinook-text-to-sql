@@ -1,0 +1,19 @@
+[project]
+name = "chinook-text-to-sql"
+version = "0.1.0"
+description = "Minimal FastAPI API for querying the Chinook PostgreSQL database."
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi>=0.111.0",
+    "psycopg[binary]>=3.2.0",
+    "pydantic-settings>=2.4.0",
+    "uvicorn[standard]>=0.30.0",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["app"]

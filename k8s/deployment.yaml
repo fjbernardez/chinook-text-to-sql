@@ -1,0 +1,47 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: chinook-api
+  namespace: chinook
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: chinook-api
+  template:
+    metadata:
+      labels:
+        app: chinook-api
+    spec:
+      containers:
+        - name: chinook-api
+          image: ghcr.io/fjbernardez/chinook-text-to-sql:develop
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8000
+          env:
+            - name: DB_HOST
+              valueFrom:
+                secretKeyRef:
+                  name: chinook-db-secret
+                  key: DB_HOST
+            - name: DB_PORT
+              valueFrom:
+                secretKeyRef:
+                  name: chinook-db-secret
+                  key: DB_PORT
+            - name: DB_NAME
+              valueFrom:
+                secretKeyRef:
+                  name: chinook-db-secret
+                  key: DB_NAME
+            - name: DB_USER
+              valueFrom:
+                secretKeyRef:
+                  name: chinook-db-secret
+                  key: DB_USER
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: chinook-db-secret
+                  key: DB_PASSWORD
