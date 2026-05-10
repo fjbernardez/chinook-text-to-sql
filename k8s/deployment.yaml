@@ -13,8 +13,6 @@ spec:
       labels:
         app: chinook-api
     spec:
-      imagePullSecrets:
-        - name: ghcr-secret
       containers:
         - name: chinook-api
           image: ghcr.io/fjbernardez/chinook-text-to-sql:develop
