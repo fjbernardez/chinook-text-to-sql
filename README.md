@@ -96,7 +96,3 @@ The Deployment expects a Kubernetes Secret named `chinook-db-secret` in the `chi
 - `DB_NAME`
 - `DB_USER`
 - `DB_PASSWORD`
-
-Do not commit real database credentials.
-
-Deployment to k3s with Traefik and GitHub Actions will be added in a later milestone.
