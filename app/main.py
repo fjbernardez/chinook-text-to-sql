@@ -36,3 +36,22 @@ def artists_count() -> dict[str, int]:
             result = cursor.fetchone()
 
     return {"artists": result["artists"]}
+
+
+@app.get("/artists/top-by-albums")
+def top_artists_by_albums() -> list[dict[str, int | str]]:
+    with connect() as connection:
+        with connection.cursor() as cursor:
+            cursor.execute(
+                """
+                SELECT
+                    artist.name,
+                    COUNT(*) AS albums
+                FROM artist
+                JOIN album ON album.artist_id = artist.artist_id
+                GROUP BY artist.name
+                ORDER BY albums DESC
+                LIMIT 10;
+                """
+            )
+            return list(cursor.fetchall())
