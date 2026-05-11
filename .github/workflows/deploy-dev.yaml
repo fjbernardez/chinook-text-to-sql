@@ -57,6 +57,7 @@ jobs:
               "if [ -d /opt/chinook-text-to-sql/.git ]; then cd /opt/chinook-text-to-sql && git fetch origin develop && git reset --hard origin/develop; else rm -rf /opt/chinook-text-to-sql && git clone --branch develop https://github.com/fjbernardez/chinook-text-to-sql.git /opt/chinook-text-to-sql; fi",
               "kubectl apply -f /opt/chinook-text-to-sql/k8s/namespace.yaml",
               "kubectl -n chinook create secret generic chinook-db-secret --from-literal=DB_HOST='\''${{ secrets.DB_HOST }}'\'' --from-literal=DB_PORT='\''${{ secrets.DB_PORT }}'\'' --from-literal=DB_NAME='\''${{ secrets.DB_NAME }}'\'' --from-literal=DB_USER='\''${{ secrets.DB_USER }}'\'' --from-literal=DB_PASSWORD='\''${{ secrets.DB_PASSWORD }}'\'' --dry-run=client -o yaml | kubectl apply -f -",
+              "kubectl -n chinook create secret generic app-secrets --from-literal=OPENAI_API_KEY='\''${{ secrets.OPENAI_API_KEY }}'\'' --dry-run=client -o yaml | kubectl apply -f -",
               "kubectl apply -f /opt/chinook-text-to-sql/k8s/deployment.yaml",
               "kubectl apply -f /opt/chinook-text-to-sql/k8s/service.yaml",
               "kubectl apply -f /opt/chinook-text-to-sql/k8s/ingress.yaml",
