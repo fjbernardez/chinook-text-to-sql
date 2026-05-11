@@ -1,13 +1,14 @@
 from fastapi import APIRouter, Depends
 
+from app.dependencies import build_ask_service
 from app.schemas.ask import AskRequest, AskResponse
 from app.services.ask_service import AskService
 
-router = APIRouter(prefix="/api/v1", tags=["ask"])
+router = APIRouter(tags=["ask"])
 
 
 def get_ask_service() -> AskService:
-    return AskService()
+    return build_ask_service()
 
 
 @router.post(
@@ -15,10 +16,10 @@ def get_ask_service() -> AskService:
     response_model=AskResponse,
     summary="Ask a natural language question about Chinook data",
     description=(
-        "Receives a natural language analytics question, asks OpenAI for a "
-        "structured SQL decision, validates any generated SQL as read-only "
-        "PostgreSQL over the Chinook allowlist, and returns query data or a "
-        "domain outcome."
+        "Receives a natural language analytics question, asks the configured "
+        "LLM provider for a structured SQL decision, validates any generated "
+        "SQL as read-only PostgreSQL over the Chinook allowlist, and returns "
+        "query data or a domain outcome."
     ),
     responses={
         200: {
@@ -63,7 +64,7 @@ def get_ask_service() -> AskService:
             },
         },
         422: {"description": "Unsafe SQL or SQL that cannot be safely validated."},
-        503: {"description": "OpenAI unavailable or timed out."},
+        503: {"description": "LLM provider unavailable or timed out."},
     },
     openapi_extra={
         "requestBody": {
