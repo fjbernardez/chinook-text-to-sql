@@ -3,6 +3,7 @@ import pytest
 from app.exceptions.api_exceptions import LlmGenerationError, UnsafeSqlError
 from app.schemas.llm import LlmDecision
 from app.services.ask_service import AskService
+from app.services.llm_provider import SqlDecisionProvider
 
 
 class FakeGenerator:
@@ -12,7 +13,12 @@ class FakeGenerator:
         self.generate_calls = 0
         self.repair_calls = 0
 
-    def generate_decision(self, question: str, max_rows: int) -> LlmDecision:
+    def generate_decision(
+        self,
+        question: str,
+        max_rows: int,
+        schema_context: str,
+    ) -> LlmDecision:
         self.generate_calls += 1
         if self.error:
             raise self.error
@@ -22,6 +28,7 @@ class FakeGenerator:
         self,
         question: str,
         max_rows: int,
+        schema_context: str,
         invalid_sql: str,
         validator_error: str,
     ) -> LlmDecision:
@@ -74,6 +81,21 @@ def test_ambiguous_response_returns_without_executing_sql() -> None:
     assert response.data is None
     assert validator.calls == 0
     assert executor.calls == 0
+
+
+def test_ask_service_accepts_fake_sql_decision_provider() -> None:
+    generator = FakeGenerator(
+        [
+            LlmDecision(
+                type="ambiguous",
+                sql=None,
+                message="Please submit a new complete question.",
+                confidence=0.8,
+            )
+        ]
+    )
+
+    assert isinstance(generator, SqlDecisionProvider)
 
 
 def test_unsupported_response_returns_without_executing_sql() -> None:

@@ -81,6 +81,12 @@ def test_caps_limit_above_max_rows(validator: SqlValidator) -> None:
     assert sql == "SELECT name FROM artist LIMIT 50"
 
 
+def test_enforces_backend_hard_row_limit(validator: SqlValidator) -> None:
+    sql = validator.validate("SELECT name FROM artist LIMIT 500", max_rows=500)
+
+    assert sql == "SELECT name FROM artist LIMIT 100"
+
+
 def test_accepts_valid_aggregate_queries(validator: SqlValidator) -> None:
     sql = validator.validate("SELECT COUNT(*) AS artists FROM artist", max_rows=50)
 
@@ -90,3 +96,8 @@ def test_accepts_valid_aggregate_queries(validator: SqlValidator) -> None:
 def test_rejects_non_chinook_tables(validator: SqlValidator) -> None:
     with pytest.raises(UnsafeSqlError):
         validator.validate("SELECT * FROM users", max_rows=50)
+
+
+def test_rejects_select_without_table_references(validator: SqlValidator) -> None:
+    with pytest.raises(UnsafeSqlError):
+        validator.validate("SELECT 1", max_rows=50)
