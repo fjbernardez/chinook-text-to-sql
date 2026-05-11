@@ -1,8 +1,9 @@
 import logging
 
-from app.exceptions.api_exceptions import LlmGenerationError, UnsafeSqlError
+from app.exceptions.api_exceptions import UnsafeSqlError
+from app.prompts.chinook_schema import CHINOOK_SCHEMA_CONTEXT
 from app.schemas.ask import AskResponse
-from app.services.openai_sql_generator import OpenAISqlGenerator
+from app.services.llm_provider import SqlDecisionProvider
 from app.services.sql_executor import SqlExecutor
 from app.services.sql_validator import SqlValidator
 
@@ -12,19 +13,23 @@ logger = logging.getLogger(__name__)
 class AskService:
     def __init__(
         self,
-        generator: OpenAISqlGenerator | None = None,
-        validator: SqlValidator | None = None,
-        executor: SqlExecutor | None = None,
+        llm_provider: SqlDecisionProvider,
+        validator: SqlValidator,
+        executor: SqlExecutor,
     ) -> None:
-        self.generator = generator or OpenAISqlGenerator()
-        self.validator = validator or SqlValidator()
-        self.executor = executor or SqlExecutor()
+        self.llm_provider = llm_provider
+        self.validator = validator
+        self.executor = executor
 
     def ask(self, question: str, max_rows: int) -> AskResponse:
         logger.info("Ask request received")
 
-        decision = self.generator.generate_decision(question, max_rows)
-        logger.info("OpenAI decision type", extra={"decision_type": decision.type})
+        decision = self.llm_provider.generate_decision(
+            question=question,
+            max_rows=max_rows,
+            schema_context=CHINOOK_SCHEMA_CONTEXT,
+        )
+        logger.info("LLM decision type", extra={"decision_type": decision.type})
 
         if decision.type in {"ambiguous", "unsupported"}:
             return AskResponse(
@@ -63,13 +68,14 @@ class AskService:
                 extra={"error": str(first_error)},
             )
 
-            repair = self.generator.repair_decision(
+            repair = self.llm_provider.repair_decision(
                 question=question,
                 max_rows=max_rows,
+                schema_context=CHINOOK_SCHEMA_CONTEXT,
                 invalid_sql=sql or "",
                 validator_error=str(first_error),
             )
-            logger.info("OpenAI repair decision type", extra={"decision_type": repair.type})
+            logger.info("LLM repair decision type", extra={"decision_type": repair.type})
 
             if repair.type in {"ambiguous", "unsupported"}:
                 return AskResponse(
@@ -87,5 +93,3 @@ class AskService:
                     extra={"error": str(repair_error)},
                 )
                 raise repair_error from first_error
-        except LlmGenerationError:
-            raise

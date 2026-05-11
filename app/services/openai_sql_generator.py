@@ -5,7 +5,6 @@ from pydantic import ValidationError
 from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential
 
 from app.exceptions.api_exceptions import LlmGenerationError
-from app.prompts.chinook_schema import CHINOOK_SCHEMA_CONTEXT
 from app.prompts.sql_generation_prompt import (
     SQL_GENERATION_SYSTEM_PROMPT,
     build_generation_input,
@@ -17,22 +16,38 @@ from app.settings import get_settings
 logger = logging.getLogger(__name__)
 
 
-class OpenAISqlGenerator:
-    def __init__(self, client: OpenAI | None = None) -> None:
+class OpenAiSqlDecisionProvider:
+    def __init__(
+        self,
+        client: OpenAI | None = None,
+        model: str | None = None,
+        timeout_seconds: float | None = None,
+    ) -> None:
+        if client is not None:
+            self.model = model or "gpt-4o-mini"
+            self.timeout_seconds = timeout_seconds or 30
+            self.client = client
+            return
+
         settings = get_settings()
-        if not settings.openai_api_key and client is None:
+        if not settings.openai_api_key:
             raise LlmGenerationError("OPENAI_API_KEY is not configured.")
 
-        self.model = settings.openai_model
-        self.timeout_seconds = settings.openai_timeout_seconds
+        self.model = model or settings.openai_model
+        self.timeout_seconds = timeout_seconds or settings.openai_timeout_seconds
         self.client = client or OpenAI(
             api_key=settings.openai_api_key,
             timeout=self.timeout_seconds,
         )
 
-    def generate_decision(self, question: str, max_rows: int) -> LlmDecision:
+    def generate_decision(
+        self,
+        question: str,
+        max_rows: int,
+        schema_context: str,
+    ) -> LlmDecision:
         prompt_input = build_generation_input(
-            schema_context=CHINOOK_SCHEMA_CONTEXT,
+            schema_context=schema_context,
             question=question,
             max_rows=max_rows,
         )
@@ -42,11 +57,12 @@ class OpenAISqlGenerator:
         self,
         question: str,
         max_rows: int,
+        schema_context: str,
         invalid_sql: str,
         validator_error: str,
     ) -> LlmDecision:
         prompt_input = build_repair_input(
-            schema_context=CHINOOK_SCHEMA_CONTEXT,
+            schema_context=schema_context,
             question=question,
             max_rows=max_rows,
             invalid_sql=invalid_sql,
