@@ -8,6 +8,7 @@ from app.prompts.chinook_schema import ALLOWED_CHINOOK_TABLES
 
 
 COMMENT_PATTERNS = ("--", "/*", "*/")
+BACKEND_MAX_ROWS = 100
 FORBIDDEN_EXPRESSIONS = (
     exp.Insert,
     exp.Update,
@@ -28,6 +29,7 @@ class SqlValidator:
         self.allowed_tables = allowed_tables or ALLOWED_CHINOOK_TABLES
 
     def validate(self, sql: str, max_rows: int) -> str:
+        effective_max_rows = min(max_rows, BACKEND_MAX_ROWS)
         if not sql or not sql.strip():
             raise UnsafeSqlError("SQL is required for query decisions.")
 
@@ -48,7 +50,7 @@ class SqlValidator:
         self._reject_non_select(expression)
         self._reject_forbidden_nodes(expression)
         self._validate_tables(expression)
-        self._enforce_limit(expression, max_rows)
+        self._enforce_limit(expression, effective_max_rows)
 
         return expression.sql(dialect="postgres")
 
@@ -80,7 +82,11 @@ class SqlValidator:
             raise UnsafeSqlError("SELECT locking clauses are not allowed.")
 
     def _validate_tables(self, expression: exp.Expression) -> None:
-        for table in expression.find_all(exp.Table):
+        tables = list(expression.find_all(exp.Table))
+        if not tables:
+            raise UnsafeSqlError("SELECT queries must reference allowed Chinook tables.")
+
+        for table in tables:
             if table.db and table.db.lower() not in {"public"}:
                 raise UnsafeSqlError("Only public Chinook tables are allowed.")
 

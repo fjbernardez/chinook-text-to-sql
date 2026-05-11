@@ -17,10 +17,11 @@ class SqlExecutor:
             with connect() as connection:
                 with connection.cursor() as cursor:
                     cursor.execute("SET LOCAL statement_timeout = '5000ms'")
+                    cursor.execute("SET LOCAL transaction_read_only = on")
                     cursor.execute(sql)
                     rows = list(cursor.fetchmany(max_rows))
         except psycopg.OperationalError as exc:
-            raise SqlExecutionError("Database is unavailable.", status_code=500) from exc
+            raise SqlExecutionError("Database is unavailable.", status_code=503) from exc
         except psycopg.Error as exc:
             raise SqlExecutionError("Validated SQL could not be executed safely.") from exc
 
