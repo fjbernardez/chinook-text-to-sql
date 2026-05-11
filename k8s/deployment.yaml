@@ -45,3 +45,12 @@ spec:
                 secretKeyRef:
                   name: chinook-db-secret
                   key: DB_PASSWORD
+            - name: OPENAI_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: app-secrets
+                  key: OPENAI_API_KEY
+            - name: OPENAI_MODEL
+              value: "gpt-4o-mini"
+            - name: OPENAI_TIMEOUT_SECONDS
+              value: "30"
